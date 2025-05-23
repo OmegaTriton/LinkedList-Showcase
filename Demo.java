@@ -37,6 +37,20 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
         GraphicNode<Integer> box = new GraphicNode<Integer>(250, 150);
         frame.add(box);
 
+        // JPanel line = new JPanel() {
+        //     @Override
+        //     protected void paintComponent(Graphics g) {
+        //         super.paintComponent(g);
+        //         Graphics2D graphics = (Graphics2D) g;
+        //         graphics.drawLine(50,100,150,100);
+        //     }
+        // };
+        // line.setSize(400,400);
+        // frame.add(line);
+
+        NodeLine line2 = new NodeLine(000,1000,200);
+        frame.getContentPane().add(line2);
+        
         focusLost(new FocusEvent(commandLine, 0, true));
     }
 
@@ -101,12 +115,15 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
 
     @Override
     public void focusGained(FocusEvent e) {
+        commandLine.setFocusable(true);
+        commandLine.grabFocus();
         textBoxFocus = true;
         if(commandLine.getText().equals("Enter Command"))
             commandLine.setText("");
     }
     @Override
     public void focusLost(FocusEvent e) {
+        commandLine.setFocusable(false);
         textBoxFocus = false;
         if(commandLine.getText().equals(""))
             commandLine.setText("Enter Command");
