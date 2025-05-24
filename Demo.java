@@ -1,18 +1,12 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
+import java.awt.event.*;
+import java.util.HashMap;
 
 public class Demo implements KeyListener, MouseListener, ActionListener, FocusListener{
     private JFrame frame;
     private JTextField commandLine;
-    private LinkedList<GraphicNode<Object>> nodes;
+    private HashMap<String, Pair<String, LinkedList<GraphicNode<Object>>>> lists; //HashMap< "name" , {"type", llist}> 
 
     private boolean textBoxFocus = false;
 
@@ -26,32 +20,106 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
         }
     };
 
-    public void SpawnNewNode(){
+    private String inputErrorMessage;
+    private Runnable showInputErrorMessage = new Runnable(){
+        public void run(){
+            //TODO:display error message for a short time
+        }
+    };
 
+    public void SpawnNewNode(){
+        inputErrorMessage = "Unsafe coding - Not Specifying Type through <>";
+        new Thread(showInputErrorMessage).start();
+        LinkedList<GraphicNode<Object>> nodes = lists.get("objectList").getValue();
+        if(nodes.isEmpty()){
+            GraphicNode<Object> newNode = new GraphicNode<Object>(250,150);
+            nodes.addHead(newNode);
+            frame.add(newNode);
+        }
+        else{
+            GraphicNode<Object> newNode = new GraphicNode<Object>(nodes.getLast().data.getX() + 50, 150);
+            nodes.addTail(newNode);
+            frame.add(newNode);
+        }
+        changeLists("objectList");
+    }
+
+    public void SpawnNewNode(Object data){
+        String listName = "objectList";
+        LinkedList<GraphicNode<Object>> nodes = lists.get("objectList").getValue();
+        if(data instanceof String) {nodes = lists.get("stringList").getValue(); listName = "stringList";}
+        else if(data instanceof Integer) {nodes = lists.get("integerList").getValue(); listName = "integerList";}
+        else if(data instanceof Double || data instanceof Float) {nodes = lists.get("doubleList").getValue(); listName = "doubleList";}
+        if(nodes.isEmpty()){
+            GraphicNode<Object> newNode = new GraphicNode<Object>(250,150, new LinkedList.Node<Object>(data));
+            nodes.addHead(newNode);
+            frame.add(newNode);
+        }
+        else{
+            GraphicNode<Object> newNode = new GraphicNode<Object>(nodes.getLast().data.getX() + 50, 150, new LinkedList.Node<Object>(data));
+            nodes.addTail(newNode);
+            frame.add(newNode);
+        }
+        changeLists(listName);
+    }
+
+    public void SpawnNewNode(Object data, String listName){
+        String accListName = "objectList";
+        LinkedList<GraphicNode<Object>> nodes = lists.get("objectList").getValue();
+        if(lists.keySet().contains(listName)){
+            accListName = listName;
+            nodes = lists.get(listName).getValue();
+        }
+        else {
+            inputErrorMessage = "Invalid List Name - added to standard lists";
+            new Thread(showInputErrorMessage).start();
+            if(data instanceof String) {nodes = lists.get("stringList").getValue(); accListName = "stringList";}
+            else if(data instanceof Integer) {nodes = lists.get("integerList").getValue(); accListName = "integerList";}
+            else if(data instanceof Double || data instanceof Float) {nodes = lists.get("doubleList").getValue(); accListName = "doubleList";}
+        }
+        if(nodes.isEmpty()){
+            GraphicNode<Object> newNode = new GraphicNode<Object>(250,150, new LinkedList.Node<Object>(data));
+            nodes.addHead(newNode);
+            frame.add(newNode);
+        }
+        else{
+            GraphicNode<Object> newNode = new GraphicNode<Object>(nodes.getLast().data.getX() + 50, 150, new LinkedList.Node<Object>(data));
+            nodes.addTail(newNode);
+            frame.add(newNode);
+        }
+        changeLists(accListName);
     }
     
+    public void changeLists(String listName){
+        if(lists.keySet().contains(listName)){
+            //hides every graphic node component and shows all nodes of the new list
+            for(String key : lists.keySet()){
+                boolean visible = false;
+                if(key.equals(listName)) visible = true;
+                LinkedList.Node<GraphicNode<Object>> it = lists.get(key).getValue().getFirst();
+                while(it != null){
+                    it.data.setVisible(visible);
+                    it = it.next;
+                }
+            }
+        }
+    }
+
     public Demo(){
         initializeGraphics();
-        nodes = new LinkedList<GraphicNode<Object>>();
+        lists = new HashMap<String, Pair<String, LinkedList<GraphicNode<Object>>>>();
+        lists.put("objectList", new Pair<String, LinkedList<GraphicNode<Object>>>("Object", new LinkedList<GraphicNode<Object>>()));
+        lists.put("stringList", new Pair<String, LinkedList<GraphicNode<Object>>>("String", new LinkedList<GraphicNode<Object>>()));
+        lists.put("integerList", new Pair<String, LinkedList<GraphicNode<Object>>>("Integer", new LinkedList<GraphicNode<Object>>()));
+        lists.put("doubleList", new Pair<String, LinkedList<GraphicNode<Object>>>("Double", new LinkedList<GraphicNode<Object>>()));
         
-        GraphicNode<Integer> box = new GraphicNode<Integer>(250, 150);
-        frame.add(box);
+        SpawnNewNode();
+        SpawnNewNode("test string");
+        SpawnNewNode(124);
+        SpawnNewNode(125.0);
 
-        // JPanel line = new JPanel() {
-        //     @Override
-        //     protected void paintComponent(Graphics g) {
-        //         super.paintComponent(g);
-        //         Graphics2D graphics = (Graphics2D) g;
-        //         graphics.drawLine(50,100,150,100);
-        //     }
-        // };
-        // line.setSize(400,400);
-        // frame.add(line);
-
-        NodeLine line2 = new NodeLine(000,1000,200);
-        frame.getContentPane().add(line2);
-        
         focusLost(new FocusEvent(commandLine, 0, true));
+        changeLists("doubleList");
     }
 
     public void initializeGraphics(){
@@ -72,6 +140,13 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
         commandLine.addFocusListener(this);
         commandLine.addMouseListener(this);
         frame.add(commandLine);
+
+        /*this thing kept giving me issues when i tried
+        to make shorter lines because it would have some weird behavior
+        and not be precise so i just made the line go through the entire screen*/
+        NodeLine nodeLine = new NodeLine(0,1000,200); 
+        nodeLine.setOpaque(false); //required because the panel background covers the screen and doesnt make anything visible
+        frame.add(nodeLine);
 
         frame.setVisible(true);
         frame.setLocationRelativeTo(null); //centers frame to screen

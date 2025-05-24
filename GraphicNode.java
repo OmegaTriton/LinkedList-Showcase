@@ -13,6 +13,7 @@ public class GraphicNode<T> extends JPanel {
         setBounds(x, y, width, height);
         setOpaque(false);
 
+        node = new LinkedList.Node<T>(null);
         c.gridy = 1;
         text = new JLabel("Null Node");
         add(text, c);

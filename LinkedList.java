@@ -77,4 +77,8 @@ public class LinkedList<T> {
     public Node<T> getLast() {
         return tail;
     }
+
+    public boolean isEmpty() {
+        return head == null;
+    }
 }
