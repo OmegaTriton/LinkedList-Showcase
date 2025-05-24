@@ -3,9 +3,10 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.HashMap;
 
-public class Demo implements KeyListener, MouseListener, ActionListener, FocusListener{
+public class Demo implements KeyListener, MouseListener, ActionListener, FocusListener, ItemListener{
     private JFrame frame;
     private JTextField commandLine;
+    private JComboBox<String> listSelector;
     private HashMap<String, Pair<String, LinkedList<GraphicNode<Object>>>> lists; //HashMap< "name" , {"type", llist}> 
 
     private boolean textBoxFocus = false;
@@ -21,9 +22,21 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
     };
 
     private String inputErrorMessage;
+    private JPanel inputErrorMessagePanel;
     private Runnable showInputErrorMessage = new Runnable(){
         public void run(){
             //TODO:display error message for a short time
+            // FIX ISSUE OF HAVING THIS THREAD CALLED MULTIPLE TIMES
+            JLabel message = new JLabel(inputErrorMessage);
+            inputErrorMessagePanel.add(message);
+            inputErrorMessagePanel.setVisible(true);
+            try{
+                Thread.sleep(10000);
+            } catch(Exception e){
+                e.printStackTrace();
+            }
+            inputErrorMessagePanel.setVisible(false);
+            inputErrorMessagePanel.remove(message);
         }
     };
 
@@ -32,12 +45,12 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
         new Thread(showInputErrorMessage).start();
         LinkedList<GraphicNode<Object>> nodes = lists.get("objectList").getValue();
         if(nodes.isEmpty()){
-            GraphicNode<Object> newNode = new GraphicNode<Object>(250,150);
+            GraphicNode<Object> newNode = new GraphicNode<Object>(GraphicNode.defaultPos.x, GraphicNode.defaultPos.y);
             nodes.addHead(newNode);
             frame.add(newNode);
         }
         else{
-            GraphicNode<Object> newNode = new GraphicNode<Object>(nodes.getLast().data.getX() + 50, 150);
+            GraphicNode<Object> newNode = new GraphicNode<Object>(nodes.getLast().data.getX() + GraphicNode.width + 50, GraphicNode.defaultPos.y);
             nodes.addTail(newNode);
             frame.add(newNode);
         }
@@ -51,12 +64,12 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
         else if(data instanceof Integer) {nodes = lists.get("integerList").getValue(); listName = "integerList";}
         else if(data instanceof Double || data instanceof Float) {nodes = lists.get("doubleList").getValue(); listName = "doubleList";}
         if(nodes.isEmpty()){
-            GraphicNode<Object> newNode = new GraphicNode<Object>(250,150, new LinkedList.Node<Object>(data));
+            GraphicNode<Object> newNode = new GraphicNode<Object>(GraphicNode.defaultPos.x, GraphicNode.defaultPos.y, new LinkedList.Node<Object>(data));
             nodes.addHead(newNode);
             frame.add(newNode);
         }
         else{
-            GraphicNode<Object> newNode = new GraphicNode<Object>(nodes.getLast().data.getX() + 50, 150, new LinkedList.Node<Object>(data));
+            GraphicNode<Object> newNode = new GraphicNode<Object>(nodes.getLast().data.getX() + GraphicNode.width + 50, GraphicNode.defaultPos.y, new LinkedList.Node<Object>(data));
             nodes.addTail(newNode);
             frame.add(newNode);
         }
@@ -78,12 +91,12 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
             else if(data instanceof Double || data instanceof Float) {nodes = lists.get("doubleList").getValue(); accListName = "doubleList";}
         }
         if(nodes.isEmpty()){
-            GraphicNode<Object> newNode = new GraphicNode<Object>(250,150, new LinkedList.Node<Object>(data));
+            GraphicNode<Object> newNode = new GraphicNode<Object>(GraphicNode.defaultPos.x,GraphicNode.defaultPos.y, new LinkedList.Node<Object>(data));
             nodes.addHead(newNode);
             frame.add(newNode);
         }
         else{
-            GraphicNode<Object> newNode = new GraphicNode<Object>(nodes.getLast().data.getX() + 50, 150, new LinkedList.Node<Object>(data));
+            GraphicNode<Object> newNode = new GraphicNode<Object>(nodes.getLast().data.getX() + GraphicNode.width + 50, GraphicNode.defaultPos.y, new LinkedList.Node<Object>(data));
             nodes.addTail(newNode);
             frame.add(newNode);
         }
@@ -102,6 +115,8 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
                     it = it.next;
                 }
             }
+            //changes listSelector to match
+            listSelector.setSelectedItem(listName);
         }
     }
 
@@ -115,11 +130,12 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
         
         SpawnNewNode();
         SpawnNewNode("test string");
+        SpawnNewNode("test string2");
         SpawnNewNode(124);
         SpawnNewNode(125.0);
 
         focusLost(new FocusEvent(commandLine, 0, true));
-        changeLists("doubleList");
+        changeLists("stringList");
     }
 
     public void initializeGraphics(){
@@ -135,7 +151,7 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
         frame.addKeyListener(this);
 
         commandLine = new JTextField("Enter Command");
-        commandLine.setBounds(400, 300, 100, 25);
+        commandLine.setBounds(400, 300, 200, 25);
         commandLine.addActionListener(this);
         commandLine.addFocusListener(this);
         commandLine.addMouseListener(this);
@@ -148,20 +164,44 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
         nodeLine.setOpaque(false); //required because the panel background covers the screen and doesnt make anything visible
         frame.add(nodeLine);
 
+        String[] defaultLists = {"objectList", "stringList", "integerList", "doubleList"};
+        listSelector = new JComboBox<String>(defaultLists);
+        listSelector.addItemListener(this);
+        listSelector.setBounds(400,0,200,50);
+        listSelector.setBackground(new Color(255, 222, 33)); //cozy yellow ish
+        frame.add(listSelector);
+        
+        inputErrorMessagePanel = new JPanel();
+        inputErrorMessagePanel.setBounds(350, 350, 300, 25);
+        inputErrorMessagePanel.setBackground(frame.getBackground());
+        inputErrorMessagePanel.setOpaque(false);
+        frame.add(inputErrorMessagePanel);
+
         frame.setVisible(true);
         frame.setLocationRelativeTo(null); //centers frame to screen
+        inputErrorMessagePanel.setVisible(false);
+    }
+
+    public void moveNodes(int pixels){
+        LinkedList.Node<GraphicNode<Object>> it = lists.get(listSelector.getSelectedItem()).getValue().getFirst();
+        while(it != null){
+            it.data.setLocation(it.data.getX() + pixels, it.data.getY());
+            it = it.next;
+        }
     }
 
     @Override
     public void keyPressed(KeyEvent e) {
-        // TODO Auto-generated method stub
-        // make sure to include textBoxFocus boolean
+        if(!textBoxFocus){
+            switch(e.getKeyCode()){
+                case KeyEvent.VK_RIGHT: moveNodes(5); break;
+                case KeyEvent.VK_LEFT: moveNodes(-5); break;
+            }
+        }
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
-        // TODO Auto-generated method stub
-        // make sure to include textBoxFocus boolean
     }
 
     @Override
@@ -202,6 +242,16 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
         textBoxFocus = false;
         if(commandLine.getText().equals(""))
             commandLine.setText("Enter Command");
+        frame.requestFocus(); //required otherwise keylistener doesnt work
+    }
+
+    @Override
+    public void itemStateChanged(ItemEvent e) {
+        if(e.getStateChange() == ItemEvent.SELECTED){
+            String selected = (String) listSelector.getSelectedItem();
+            changeLists(selected);
+            frame.requestFocus(); //required otherwise keylistener doesnt work
+        }
     }
 
     public void keyTyped(KeyEvent e) {} //unused

@@ -3,6 +3,7 @@ import java.awt.*;
 
 public class GraphicNode<T> extends JPanel {
     public static int width = 150, height = 100;
+    public static Point defaultPos = new Point(425,150);
     private LinkedList.Node<T> node;
     private JLabel text;
     private GridBagConstraints c = new GridBagConstraints();
