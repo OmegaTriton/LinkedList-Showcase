@@ -11,14 +11,20 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
     private HashMap<String, Pair<String, LinkedList<GraphicNode<Object>>>> lists; //HashMap< "name" , {"type", llist}> 
     private HashMap<String, ArrayList<NodeLine>> listLines; //HashMap< "name", all lines per list>
 
-    private boolean textBoxFocus = false;
-
     private boolean mouseClick = false;
-    private MouseEvent initialClickPos;
+    private Point initialClickPos;
     private Runnable mouseDrag = new Runnable(){
         public void run(){
             while(mouseClick){
-                //TODO: Implement this after implementing lines and node spawning
+                Point current = MouseInfo.getPointerInfo().getLocation();
+                int pixels = current.x-initialClickPos.x;
+                initialClickPos = current;
+                moveNodes(pixels);
+                try{
+                    Thread.sleep(1);
+                } catch(Exception e){
+                    e.printStackTrace();
+                }
             }
         }
     };
@@ -33,7 +39,7 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
             inputErrorMessagePanel.add(message);
             inputErrorMessagePanel.setVisible(true);
             try{
-                Thread.sleep(10000);
+                Thread.sleep(5000);
             } catch(Exception e){
                 e.printStackTrace();
             }
@@ -218,7 +224,7 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
 
     @Override
     public void keyPressed(KeyEvent e) {
-        if(!textBoxFocus){
+        if(frame.hasFocus()){
             switch(e.getKeyCode()){
                 case KeyEvent.VK_RIGHT: moveNodes(5); break;
                 case KeyEvent.VK_LEFT: moveNodes(-5); break;
@@ -232,10 +238,10 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
 
     @Override
     public void mousePressed(MouseEvent e) {
-        if(!e.getComponent().equals(commandLine)){
+        if(e.getComponent().equals(frame)){
             focusLost(new FocusEvent(commandLine, FocusEvent.FOCUS_LOST, true));
             mouseClick = true;
-            initialClickPos = e;
+            initialClickPos = MouseInfo.getPointerInfo().getLocation();
             new Thread(mouseDrag).start();
         }
         else{
@@ -258,14 +264,12 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
     public void focusGained(FocusEvent e) {
         commandLine.setFocusable(true);
         commandLine.grabFocus();
-        textBoxFocus = true;
         if(commandLine.getText().equals("Enter Command"))
             commandLine.setText("");
     }
     @Override
     public void focusLost(FocusEvent e) {
         commandLine.setFocusable(false);
-        textBoxFocus = false;
         if(commandLine.getText().equals(""))
             commandLine.setText("Enter Command");
         frame.requestFocus(); //required otherwise keylistener doesnt work
