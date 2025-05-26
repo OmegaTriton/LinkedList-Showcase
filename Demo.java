@@ -33,18 +33,32 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
     private JPanel inputErrorMessagePanel;
     private Runnable showInputErrorMessage = new Runnable(){
         public void run(){
-            //TODO:display error message for a short time
-            // FIX LATER: ISSUE OF HAVING THIS THREAD CALLED MULTIPLE TIMES
+            // everything this thread is called, old messages will be wiped if still shown on screen or if failed to remove
+            if(inputErrorMessagePanel.getComponentCount() > 0) 
+                inputErrorMessagePanel.removeAll();
             JLabel message = new JLabel(inputErrorMessage);
             inputErrorMessagePanel.add(message);
+            //these two are required because they refresh the panel after it's removed everything and added the new message
+            inputErrorMessagePanel.revalidate();
+            // inputErrorMessagePanel.repaint();
+            
             inputErrorMessagePanel.setVisible(true);
             try{
                 Thread.sleep(5000);
             } catch(Exception e){
                 e.printStackTrace();
             }
-            inputErrorMessagePanel.setVisible(false);
-            inputErrorMessagePanel.remove(message);
+            /*if panel contains message 
+            (if no other message was added to the panel or 
+            if panel wasnt cleared during the sleep time) 
+            then hide panel and remove label*/
+            //only refreshes if the message on this thread is the newest one
+            for(Component c : inputErrorMessagePanel.getComponents()){
+                if( ((JLabel) c) == message) { //here .equals vs == shouldnt matter, but == represents what im trying to show in the expression more
+                    inputErrorMessagePanel.setVisible(false);
+                    inputErrorMessagePanel.remove(message);
+                }
+            }
         }
     };
 
@@ -224,6 +238,20 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
 
     @Override
     public void keyPressed(KeyEvent e) {
+        for(Component c : inputErrorMessagePanel.getComponents()){
+            JLabel l = (JLabel)c;
+            System.out.println(l.getText());
+        }
+        if(e.getKeyCode() == KeyEvent.VK_W) {
+            System.out.println("error message 1");
+            inputErrorMessage = "Error message1";
+            new Thread(showInputErrorMessage).start();
+        }
+        else if(e.getKeyCode() == KeyEvent.VK_A) {
+            System.out.println("error message2");
+            inputErrorMessage = "Error message2";
+            new Thread(showInputErrorMessage).start();
+        }
         if(frame.hasFocus()){
             switch(e.getKeyCode()){
                 case KeyEvent.VK_RIGHT: moveNodes(5); break;
