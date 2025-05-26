@@ -8,8 +8,9 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
     private JFrame frame;
     private JTextField commandLine;
     private JComboBox<String> listSelector;
-    private HashMap<String, Pair<String, LinkedList<GraphicNode<Object>>>> lists; //HashMap< "name" , {"type", llist}> 
-    private HashMap<String, ArrayList<NodeLine>> listLines; //HashMap< "name", all lines per list>
+    private HashMap<String, Pair<String, LinkedList<GraphicNode<Object>>>> lists; //HashMap< "listName" , {"type", llist}> 
+    private HashMap<String, ArrayList<NodeLine>> listLines; //HashMap< "listName", all lines per list>
+    private HashMap<String, ArrayList<Pointer>> listPointers; //HashMap < "listName" , all pointers per list>
 
     private boolean mouseClick = false;
     private Point initialClickPos;
@@ -40,7 +41,7 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
             inputErrorMessagePanel.add(message);
             //these two are required because they refresh the panel after it's removed everything and added the new message
             inputErrorMessagePanel.revalidate();
-            // inputErrorMessagePanel.repaint();
+            inputErrorMessagePanel.repaint();
             
             inputErrorMessagePanel.setVisible(true);
             try{
@@ -53,7 +54,7 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
             if panel wasnt cleared during the sleep time) 
             then hide panel and remove label*/
             //only refreshes if the message on this thread is the newest one
-            for(Component c : inputErrorMessagePanel.getComponents()){
+            for(Component c : inputErrorMessagePanel.getComponents()){ //technically dont need the for loop now but if something fails to get cleared out it wont affect it
                 if( ((JLabel) c) == message) { //here .equals vs == shouldnt matter, but == represents what im trying to show in the expression more
                     inputErrorMessagePanel.setVisible(false);
                     inputErrorMessagePanel.remove(message);
@@ -142,6 +143,36 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
         changeLists(accListName);
     }
     
+    public void SpawnNewPointer(String pointerName, GraphicNode<Object> node, String listName){
+        if(node == null){
+            inputErrorMessage = "NullPointerExecption - tried to initialize a pointer to null destination";
+            new Thread(showInputErrorMessage).start();
+            return;
+        }
+        String accListName = "objectList";
+        Pointer pointer = new Pointer(pointerName, node);
+        if(lists.keySet().contains(listName)){
+            accListName = listName;
+        }
+        else{
+            inputErrorMessage = "Invalid List Name - added to standard lists";
+            new Thread(showInputErrorMessage).start();
+            if(node.getNode().data instanceof String) accListName = "stringList";
+            else if(node.getNode().data instanceof Integer) accListName = "integerList";
+            else if(node.getNode().data instanceof Double || node.getNode().data instanceof Float) accListName = "doubleList";
+        }
+        for(Pointer p : listPointers.get(accListName)){
+            if(p.name.equals(pointerName)){
+                inputErrorMessage = "Invalid Pointer name - pointer name already exists";
+                new Thread(showInputErrorMessage).start();
+                return;
+            }
+        }
+        listPointers.get(accListName).add(pointer);
+        frame.add(pointer);
+        changeLists(accListName);
+    }
+
     public void changeLists(String listName){
         if(lists.keySet().contains(listName)){
             //hides every graphic node component and shows all nodes of the new list
@@ -157,6 +188,9 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
                 //iterates over lines to set visibility
                 for(NodeLine line : listLines.get(key)){
                     line.setVisible(visible);
+                }
+                for(Pointer pointer : listPointers.get(key)){
+                    pointer.setVisible(visible);
                 }
             }
             //changes listSelector to match
@@ -177,12 +211,20 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
             listLines.put(key, new ArrayList<NodeLine>());
         }
 
+        listPointers = new HashMap<String, ArrayList<Pointer>>();
+        for(String key : lists.keySet()) {//initializes listPointers
+            listPointers.put(key, new ArrayList<Pointer>());
+        }
+
         SpawnNewNode();
         SpawnNewNode("test string");
         SpawnNewNode("test string2");
         SpawnNewNode("test string3");
         SpawnNewNode(124);
         SpawnNewNode(125.0);
+
+        SpawnNewPointer("head", lists.get("stringList").getValue().getFirst().data, "stringList");
+        SpawnNewPointer("a", lists.get("stringList").getValue().getFirst().next.data, "stringList");
 
         focusLost(new FocusEvent(commandLine, 0, true));
         changeLists("stringList");
@@ -234,24 +276,13 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
         for(NodeLine line : listLines.get(listSelector.getSelectedItem())){
             line.setLocation(line.getX() + pixels, line.getY());
         }
+        for(Pointer pointer : listPointers.get(listSelector.getSelectedItem())){
+            pointer.setLocation(pointer.getX() + pixels, pointer.getY());
+        }
     }
 
     @Override
     public void keyPressed(KeyEvent e) {
-        for(Component c : inputErrorMessagePanel.getComponents()){
-            JLabel l = (JLabel)c;
-            System.out.println(l.getText());
-        }
-        if(e.getKeyCode() == KeyEvent.VK_W) {
-            System.out.println("error message 1");
-            inputErrorMessage = "Error message1";
-            new Thread(showInputErrorMessage).start();
-        }
-        else if(e.getKeyCode() == KeyEvent.VK_A) {
-            System.out.println("error message2");
-            inputErrorMessage = "Error message2";
-            new Thread(showInputErrorMessage).start();
-        }
         if(frame.hasFocus()){
             switch(e.getKeyCode()){
                 case KeyEvent.VK_RIGHT: moveNodes(5); break;
@@ -285,7 +316,6 @@ public class Demo implements KeyListener, MouseListener, ActionListener, FocusLi
     @Override
     public void actionPerformed(ActionEvent e) {
         // TODO Auto-generated method stub
-        
     }
 
     @Override
