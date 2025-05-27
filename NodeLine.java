@@ -23,6 +23,20 @@ public class NodeLine extends JPanel{
         setOpaque(false); //required because the panel background covers the screen and doesnt make anything visible
     }
 
+    public void setLineBounds(int x1, int x2, int y){ //horizontal lines
+        this.x1 = x1;
+        this.x2 = x2;
+        this.y1 = y;
+        this.y2 = y;
+    }
+    
+    public void setLineBounds(int x1, int x2, int y1, int y2){ //lines in general
+        this.x1 = x1;
+        this.x2 = x2;
+        this.y1 = y1;
+        this.y2 = y2;
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);

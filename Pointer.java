@@ -4,7 +4,7 @@ public class Pointer extends NodeLine{
     public static int YBuffer = 50;
     public String name;
     private int pointerX, pointerY;
-    private GraphicNode<Object> node;
+    public GraphicNode<Object> node;
 
     public Pointer(String name, GraphicNode<Object> node){
         super(node.getX() + GraphicNode.width/2, node.getX() + GraphicNode.width/2, node.getY() - YBuffer, node.getY() - 10);
@@ -18,6 +18,22 @@ public class Pointer extends NodeLine{
          * apparently when it draws it draws from bottom left corner
          * 10 is just to match the other 10, arbitrary */
         pointerY = node.getY() - YBuffer - 10; 
+    }
+
+    public void setName(String name){
+        this.name = name;
+        pointerX = node.getX() + GraphicNode.width/2 - (int)(name.length()/2.0 * 6); 
+        revalidate();
+        repaint();
+    }
+
+    public void setNode(GraphicNode<Object> node){
+        this.node = node;
+        pointerX = node.getX() + GraphicNode.width/2 - (int)(name.length()/2.0 * 6); 
+        pointerY = node.getY() - YBuffer - 10; 
+        setLineBounds(node.getX() + GraphicNode.width/2, node.getX() + GraphicNode.width/2, node.getY() - YBuffer, node.getY() - 10);
+        revalidate();
+        repaint();
     }
 
     @Override
